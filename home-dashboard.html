@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Home Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  window.__gapiReady = false;
+  window.__gisReady = false;
+</script>
+<script src="https://accounts.google.com/gsi/client" async defer onload="window.__gisReady=true; window.__gisLoaded && window.__gisLoaded();"></script>
+<script src="https://apis.google.com/js/api.js" async defer onload="window.__gapiReady=true; window.__gapiLoaded && window.__gapiLoaded();"></script>
+<style>
+  :root{
+    --bg:#12161B;
+    --panel-alpha: 0.42;
+    --surface: rgba(27,33,41,var(--panel-alpha));
+    --surface-alt: rgba(35,43,52, calc(var(--panel-alpha) + 0.08));
+    --border:rgba(255,255,255,0.10);
+    --text:#EDF0F3;
+    --text-muted:#A8B0BB;
+    --accent-scott:#E8A33D;
+    --accent-gina:#5FB8AE;
+    --accent-family:#9B8AC4;
+    --accent-danger:#D9634B;
+    --col-left: 56%;
+    --row-left-top: 63%;
+    --row-right-top: 50%;
+    --scale: 0.85;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    height:100%;
+    color:var(--text);
+    font-family:'Inter', sans-serif;
+    overflow:hidden;
+    font-size: calc(16px * var(--scale));
+  }
+  body{
+    display:flex;
+    flex-direction:column;
+    background:
+      linear-gradient(rgba(8,10,13,0.42), rgba(8,10,13,0.55)),
+      var(--bg-image, none) center/cover no-repeat fixed,
+      var(--bg);
+  }
+
+  /* ---------- Date/time — now living in the Calendar panel's header ---------- */
+  .cal-date-block{ display:flex; align-items:baseline; gap:0.55em; }
+  .cal-date-block .weekday, .cal-date-block .fulldate, .cal-date-block .clock{
+    font-family:'Sora', sans-serif;
+    font-weight:600;
+    font-size:1.05em;
+  }
+  .cal-date-block .fulldate{ color:var(--text-muted); font-weight:500; }
+  .cal-date-block .clock{ margin-left:0.3em; }
+
+  /* ---------- Main layout: independent left/right columns, each split top/bottom ---------- */
+  #main{
+    flex:1;
+    display:flex;
+    gap: 0.8em;
+    padding: 1em 1.2em 1.2em;
+    min-height:0;
+  }
+  .col-left{
+    flex: 0 0 var(--col-left);
+    display:flex; flex-direction:column; gap:0.8em;
+    min-height:0; min-width:0;
+  }
+  .col-right{
+    flex: 1 1 auto;
+    display:flex; flex-direction:column; gap:0.8em;
+    min-height:0; min-width:0;
+  }
+  #calendar-panel{ flex: 0 0 var(--row-left-top); min-height:0; }
+  #quad-lower-cal{ flex: 1 1 auto; min-height:0; }
+  #quad-tasks{ flex: 0 0 var(--row-right-top); min-height:0; }
+  #photos-panel{ flex: 1 1 auto; min-height:0; }
+  .quad-row{ display:flex; gap:0.8em; min-height:0; min-width:0; }
+  .quad-row .panel{ flex:1; min-width:0; min-height:0; }
+  .panel{
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+    overflow:hidden;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .panel-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 0.8em 1.2em;
+    border-bottom:1px solid var(--border);
+    flex-shrink:0;
+  }
+  .panel-header h2{
+    font-family:'Sora', sans-serif;
+    font-size:1em;
+    font-weight:600;
+    color:var(--text-muted);
+  }
+  .panel-body{
+    flex:1;
+    overflow-y:auto;
+    padding: 0.9em 1.2em 1.2em;
+    min-height:0;
+  }
+  .panel-body::-webkit-scrollbar{ width:6px; }
+  .panel-body::-webkit-scrollbar-thumb{ background:var(--border); border-radius:3px; }
+
+  /* ---------- Calendar column ---------- */
+  .legend{ display:flex; gap:1.1em; align-items:center; font-size:0.78em; color:var(--text-muted); }
+  .legend span{ display:flex; align-items:center; gap:0.4em; }
+  .dot{ width:0.6em; height:0.6em; border-radius:50%; display:inline-block; }
+  .dot.scott{ background:var(--accent-scott); }
+  .dot.gina{ background:var(--accent-gina); }
+  .dot.family{ background:var(--accent-family); }
+
+  #calendar-panel .panel-body{ display:flex; flex-direction:column; overflow:hidden; }
+  #month-view{ flex: 1 1 auto; display:flex; flex-direction:column; min-height:0; }
+  .weekday-row, .month-grid{ display:grid; grid-template-columns: repeat(7, 1fr); }
+  .weekday-row div{ text-align:center; font-size:0.72em; color:var(--text-muted); padding-bottom:0.4em; }
+  .month-grid{ flex:1; grid-auto-rows: 1fr; gap:4px; min-height:0; }
+  .day-cell{
+    background:rgba(255,255,255,0.03);
+    border-radius:8px;
+    padding:0.35em;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+    overflow:hidden;
+  }
+  .day-cell.today{ outline:2px solid var(--accent-scott); }
+  .day-cell .num{ font-size:0.8em; color:var(--text-muted); margin-bottom:0.15em; }
+  .day-cell.today .num{ color:var(--text); font-weight:600; }
+  .day-cell .ev{
+    font-size:0.72em; padding:4px 6px; border-radius:5px; margin-bottom:3px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    min-height:1.6em; display:flex; align-items:center;
+    cursor:pointer; -webkit-tap-highlight-color:transparent;
+  }
+  .day-cell .ev:active{ filter:brightness(1.4); }
+  .ev.scott{ background:rgba(232,163,61,0.22); color:var(--accent-scott); }
+  .ev.gina{ background:rgba(95,184,174,0.22); color:var(--accent-gina); }
+  .ev.family{ background:rgba(155,138,196,0.22); color:var(--accent-family); }
+  .day-cell.other-month{ opacity:0.3; }
+
+  #upcoming-panel .panel-body{ display:flex; flex-direction:column; min-height:0; }
+  #upcoming-list{ min-height:0; }
+  .agenda-day-label{
+    font-size:0.78em; color:var(--text-muted); font-weight:500;
+    margin:0.5em 0 0.2em;
+  }
+  .agenda-day-label:first-child{ margin-top:0; }
+  .agenda-item{ display:flex; gap:0.6em; align-items:flex-start; padding:0.4em 0; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .agenda-item:active{ background:rgba(255,255,255,0.04); }
+  .agenda-item .bar{ width:3px; align-self:stretch; border-radius:2px; flex-shrink:0; }
+  .agenda-item .bar.scott{ background:var(--accent-scott); }
+  .agenda-item .bar.gina{ background:var(--accent-gina); }
+  .agenda-item .bar.family{ background:var(--accent-family); }
+  .agenda-item .time{ font-size:0.75em; color:var(--text-muted); width:4.6em; flex-shrink:0; }
+  .agenda-item .title{ font-size:0.85em; }
+
+  /* Weather panel — same quadrant row as Upcoming */
+  #weather-panel .panel-body{
+    display:flex; flex-direction:column; justify-content:center; gap:0.9em;
+  }
+  #weather-now{ display:flex; align-items:center; gap:0.7em; }
+  #weather-now .icon{ font-size:2.4em; line-height:1; }
+  #weather-now .temp{ font-family:'Sora'; font-weight:700; font-size:1.9em; }
+  #weather-now .desc{ color:var(--text-muted); font-size:0.8em; }
+  #weather-extra{
+    display:flex; flex-wrap:wrap; gap:0.9em 1.3em;
+    font-size:0.78em; color:var(--text-muted);
+  }
+  #weather-days{ display:flex; justify-content:space-between; gap:0.3em; }
+  .wday{ text-align:center; font-size:0.72em; color:var(--text-muted); flex:1; }
+  .wday .wd-name{ margin-bottom:0.2em; }
+  .wday .wd-icon{ font-size:1.3em; margin-bottom:0.15em; }
+  .wday .wd-temp{ color:var(--text); font-weight:500; }
+  .wday .wd-precip{ color:var(--accent-gina); font-size:0.85em; margin-top:0.1em; }
+
+  /* ---------- Tasks column: To-Do + Shopping ---------- */
+  #todo-panel, #shopping-panel{ flex:1 1 0; min-height:0; }
+  .list-add{ display:flex; gap:0.4em; align-items:center; flex-shrink:0; }
+  .list-add input{
+    width:8.5em; background:var(--surface-alt); border:1px solid var(--border); border-radius:7px;
+    padding:0.4em 0.65em; color:var(--text); font-family:'Inter'; font-size:0.8em;
+  }
+  .list-add button{
+    background:var(--accent-scott); color:#1B140A; border:none; border-radius:7px;
+    width:1.8em; height:1.8em; flex-shrink:0; font-weight:700; cursor:pointer; font-size:1em;
+    display:flex; align-items:center; justify-content:center; line-height:1;
+  }
+  .list-add.shopping button{ background:var(--accent-gina); }
+  .list-item{ display:flex; align-items:center; gap:0.55em; padding:0.32em 0; border-bottom:1px solid var(--border); }
+  .list-item input[type=checkbox]{ width:1em; height:1em; accent-color:var(--accent-scott); flex-shrink:0; }
+  #shopping-list .list-item input[type=checkbox]{ accent-color:var(--accent-gina); }
+  .list-item .item-text{ flex:1; font-size:0.85em; }
+  .list-item.done .item-text{ color:var(--text-muted); text-decoration:line-through; }
+  .list-item .del{ background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:0.9em; padding:0.15em 0.35em; }
+  .list-item .del:hover{ color:var(--accent-danger); }
+  .list-actions{ display:flex; justify-content:flex-end; margin-bottom:0.5em; }
+  #shopping-share-btn{
+    background:transparent; border:1px solid var(--border); color:var(--text-muted);
+    font-size:0.72em; padding:0.35em 0.7em; border-radius:6px; cursor:pointer; font-family:'Inter';
+  }
+  #shopping-share-btn:active{ color:var(--text); }
+
+  /* ---------- Photos quadrant ---------- */
+  /* Photo slideshow */
+  #photos-panel .panel-body{ padding:0; display:flex; position:relative; }
+  #slideshow{ flex:1; position:relative; border-radius:14px; overflow:hidden; }
+  #slideshow img{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:contain;
+    opacity:0; transition:opacity 1.2s ease;
+  }
+  #slideshow img.active{ opacity:1; }
+  #slideshow-empty{
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:0.6em; text-align:center; padding:1em; color:var(--text-muted); font-size:0.85em;
+  }
+  #slideshow-empty svg{ width:2.4em; height:2.4em; color:var(--accent-scott); }
+
+  /* ---------- Settings ---------- */
+  #settings-btn{
+    position:fixed; bottom:1em; right:1em; width:2.6em; height:2.6em; border-radius:50%;
+    background:var(--surface-alt); border:1px solid var(--border); color:var(--text-muted);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:50;
+    opacity:0.35; transition:opacity 0.2s;
+  }
+  #settings-btn:hover{ opacity:1; }
+  #settings-modal{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:100;
+    align-items:center; justify-content:center;
+  }
+  #settings-modal.open{ display:flex; }
+  #settings-panel{
+    background:#1B2129; border:1px solid var(--border); border-radius:14px;
+    width:min(520px, 90vw); max-height:88vh; overflow-y:auto; padding:1.6em;
+  }
+  #settings-panel h3{ font-family:'Sora'; margin-bottom:1em; }
+  .setting-row{ margin-bottom:1.2em; }
+  .setting-row label{ display:block; font-size:0.85em; color:var(--text-muted); margin-bottom:0.5em; }
+  .setting-row input[type=range]{ width:100%; }
+  .setting-row input[type=text], .setting-row input[type=date], .setting-row input[type=time],
+  .setting-row select, .setting-row textarea{
+    width:100%; background:var(--surface-alt); border:1px solid var(--border); border-radius:8px;
+    padding:0.5em 0.8em; color:var(--text); font-family:'Inter'; font-size:0.9em;
+  }
+  .setting-row.ae-datetime{ display:flex; gap:0.8em; }
+  .setting-row.ae-datetime > div{ flex:1; }
+  .setting-row textarea{ min-height:5em; resize:vertical; font-size:0.8em; }
+  .setting-row .val{ font-size:0.8em; color:var(--text-muted); }
+  .setting-row.buttons{ display:flex; gap:0.6em; flex-wrap:wrap; }
+  .setting-row.buttons button{
+    flex:1; min-width:120px; background:var(--surface-alt); border:1px solid var(--border); color:var(--text);
+    padding:0.6em; border-radius:8px; cursor:pointer; font-family:'Inter'; font-size:0.85em;
+  }
+  .setting-row.buttons button.primary{ background:var(--accent-scott); color:#1B140A; border:none; font-weight:600; }
+
+  /* Month navigation row */
+  .month-nav{ display:flex; align-items:center; gap:0.5em; margin-bottom:0.5em; flex-shrink:0; }
+  .month-nav .month-label{ font-family:'Sora'; font-weight:600; font-size:1.2em; margin:0; flex:1; }
+  .nav-btn{
+    background:var(--surface-alt); border:1px solid var(--border); color:var(--text);
+    border-radius:7px; width:2em; height:2em; cursor:pointer; font-size:1em;
+    display:flex; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent;
+  }
+  .nav-btn.today-btn, .nav-btn.add-btn{ width:auto; padding:0 0.8em; font-size:0.8em; }
+  .nav-btn.add-btn{ background:var(--accent-scott); color:#1B140A; border:none; font-weight:600; }
+
+  /* "+N more" chip on days with more events than fit */
+  .ev-more{
+    font-size:0.68em; color:var(--text-muted); padding:2px 6px; cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .ev-more:active{ color:var(--text); }
+
+  /* Day detail popup */
+  #day-modal{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:100;
+    align-items:center; justify-content:center;
+  }
+  #day-modal.open{ display:flex; }
+  #day-popup{
+    background:#1B2129; border:1px solid var(--border); border-radius:14px;
+    width:min(400px, 85vw); max-height:80vh; padding:1.4em; display:flex; flex-direction:column;
+  }
+  #dp-date{ font-family:'Sora'; font-weight:600; font-size:1.1em; margin-bottom:0.8em; }
+  #dp-list{ overflow-y:auto; margin-bottom:1em; min-height:0; }
+  .dp-row{
+    display:flex; align-items:center; gap:0.6em; padding:0.5em 0; border-bottom:1px solid var(--border);
+    cursor:pointer;
+  }
+  .dp-row .dot{ width:0.6em; height:0.6em; flex-shrink:0; }
+  .dp-time{ font-size:0.78em; color:var(--text-muted); width:4.6em; flex-shrink:0; }
+  .dp-title{ font-size:0.9em; }
+  .dp-empty{ color:var(--text-muted); font-size:0.85em; padding:0.6em 0; }
+  #day-popup button{
+    width:100%; background:var(--surface-alt); border:1px solid var(--border); color:var(--text);
+    padding:0.6em; border-radius:8px; cursor:pointer; font-family:'Inter'; font-size:0.85em; margin-top:0.5em;
+  }
+  #dp-add-btn{ background:var(--accent-scott); color:#1B140A; border:none; font-weight:600; margin-top:0; }
+
+  /* Add Event modal */
+  #addevent-modal{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:100;
+    align-items:center; justify-content:center;
+  }
+  #addevent-modal.open{ display:flex; }
+  #addevent-popup{
+    background:#1B2129; border:1px solid var(--border); border-radius:14px;
+    width:min(400px, 85vw); max-height:85vh; overflow-y:auto; padding:1.4em;
+  }
+  #addevent-popup h3{ font-family:'Sora'; margin-bottom:1em; }
+  #addevent-popup button{
+    width:100%; padding:0.7em; border-radius:8px; cursor:pointer; font-family:'Inter'; font-size:0.9em; margin-top:0.5em;
+  }
+  #ae-save{ background:var(--accent-scott); color:#1B140A; border:none; font-weight:700; }
+  .checkbox-label{ display:flex !important; align-items:center; gap:0.5em; cursor:pointer; }
+  .checkbox-label input[type=checkbox]{ width:1.1em; height:1.1em; accent-color:var(--accent-scott); }
+  #ae-time-wrap.disabled{ opacity:0.4; pointer-events:none; }
+  #ae-open-google{ background:var(--surface-alt); border:1px solid var(--border); color:var(--text); }
+  #close-addevent{ background:transparent; border:1px solid var(--border); color:var(--text-muted); }
+
+  /* QR code handoff modal */
+  #qr-modal{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:100;
+    align-items:center; justify-content:center;
+  }
+  #qr-modal.open{ display:flex; }
+  #qr-popup{
+    background:#1B2129; border:1px solid var(--border); border-radius:14px;
+    width:min(320px, 85vw); padding:1.4em; text-align:center;
+  }
+  #qr-popup h3{ font-family:'Sora'; margin-bottom:1em; }
+  #qr-img{ width:220px; height:220px; border-radius:8px; background:#fff; padding:0.6em; }
+  #qr-url{ font-size:0.7em; color:var(--text-muted); word-break:break-all; margin:1em 0; }
+  #qr-popup button{
+    width:100%; background:var(--surface-alt); border:1px solid var(--border); color:var(--text);
+    padding:0.6em; border-radius:8px; cursor:pointer; font-family:'Inter'; font-size:0.85em;
+  }
+
+  /* Event detail popup, shown when tapping a calendar event chip */
+  #event-modal{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:100;
+    align-items:center; justify-content:center;
+  }
+  #event-modal.open{ display:flex; }
+  #event-popup{
+    background:#1B2129; border:1px solid var(--border); border-radius:14px;
+    width:min(360px, 85vw); padding:1.4em;
+  }
+  #event-popup .ep-who{ display:flex; align-items:center; gap:0.5em; font-size:0.8em; color:var(--text-muted); margin-bottom:0.7em; }
+  #event-popup .ep-who .dot{ width:0.7em; height:0.7em; }
+  #event-popup .ep-title{ font-family:'Sora'; font-weight:600; font-size:1.15em; margin-bottom:0.4em; }
+  #event-popup .ep-time{ color:var(--text-muted); font-size:0.9em; margin-bottom:1.2em; }
+  #event-popup button{
+    width:100%; background:var(--surface-alt); border:1px solid var(--border); color:var(--text);
+    padding:0.6em; border-radius:8px; cursor:pointer; font-family:'Inter'; font-size:0.85em; margin-top:0.5em;
+  }
+  #event-popup button:first-of-type{ margin-top:0; }
+  #event-popup button.danger{ background:rgba(217,99,75,0.15); border-color:var(--accent-danger); color:var(--accent-danger); }
+  #save-settings{
+    display:block; width:100%; margin-top:0.3em; background:var(--accent-scott); color:#1B140A;
+    border:none; font-weight:700; padding:0.75em; border-radius:8px; cursor:pointer; font-size:0.95em;
+  }
+  #close-settings{
+    display:block; margin-top:0.6em; background:transparent; border:1px solid var(--border);
+    color:var(--text-muted); padding:0.6em; border-radius:8px; width:100%; cursor:pointer;
+  }
+  .config-note{
+    font-size:0.75em; color:var(--text-muted); line-height:1.5; background:var(--surface-alt);
+    border-radius:8px; padding:0.8em; margin-top:0.3em;
+  }
+  .section-divider{
+    border-top:1px solid var(--border); margin:1.4em 0 1.2em; padding-top:0.2em;
+    font-size:0.75em; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted);
+  }
+</style>
+</head>
+<body>
+
+  <div id="main">
+
+    <div class="col-left">
+      <!-- Top-left: full month calendar (larger) -->
+      <section class="panel" id="calendar-panel">
+        <div class="panel-header">
+          <div class="cal-date-block">
+            <span class="weekday" id="tb-weekday">Monday</span>
+            <span class="fulldate" id="tb-fulldate">September 7, 2026</span>
+            <span class="clock" id="tb-clock">10:42 AM</span>
+          </div>
+          <div class="legend">
+            <span><span class="dot scott"></span>Scott</span>
+            <span><span class="dot gina"></span>Gina</span>
+            <span><span class="dot family"></span>Family</span>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div id="month-view">
+            <div class="month-nav">
+              <button class="nav-btn" id="month-prev" aria-label="Previous month">‹</button>
+              <div class="month-label" id="month-label">September 2026</div>
+              <button class="nav-btn" id="month-next" aria-label="Next month">›</button>
+              <button class="nav-btn today-btn" id="month-today-btn">Today</button>
+              <button class="nav-btn add-btn" id="month-add-btn" title="Add event">+ Add</button>
+            </div>
+            <div class="weekday-row">
+              <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+            </div>
+            <div class="month-grid" id="month-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Bottom-left: Upcoming + Weather, side by side, same width as calendar above -->
+      <div class="quad-row" id="quad-lower-cal">
+        <section class="panel" id="upcoming-panel">
+          <div class="panel-header"><h2>Upcoming</h2></div>
+          <div class="panel-body">
+            <div id="upcoming-list"></div>
+          </div>
+        </section>
+        <section class="panel" id="weather-panel">
+          <div class="panel-body">
+            <div id="weather-now">
+              <span class="icon" id="w-icon">—</span>
+              <div>
+                <span class="temp" id="w-temp">--°C</span>
+                <div class="desc" id="w-desc">Set your location in settings</div>
+              </div>
+            </div>
+            <div id="weather-extra">
+              <span id="w-wind">💨 -- km/h</span>
+              <span id="w-pressure">⏱ --</span>
+              <span id="w-moon">🌙 --</span>
+              <span id="w-sunrise">☀ --:--</span>
+              <span id="w-sunset">🌙 --:--</span>
+            </div>
+            <div id="weather-days"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="col-right">
+      <!-- Top-right: To-Do + Shopping, side by side -->
+      <div class="quad-row" id="quad-tasks">
+        <section class="panel" id="todo-panel">
+          <div class="panel-header">
+            <h2>To-Do</h2>
+            <div class="list-add">
+              <input type="text" id="todo-input" placeholder="Add a task...">
+              <button id="todo-add-btn">+</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div id="todo-list"></div>
+          </div>
+        </section>
+        <section class="panel" id="shopping-panel">
+          <div class="panel-header">
+            <h2>Shopping List</h2>
+            <div class="list-add shopping">
+              <input type="text" id="shopping-input" placeholder="Add an item...">
+              <button id="shopping-add-btn">+</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="list-actions"><button id="shopping-share-btn">Share / Email List</button></div>
+            <div id="shopping-list"></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Bottom-right: Photos -->
+      <section class="panel" id="photos-panel">
+        <div class="panel-body">
+          <div id="slideshow"></div>
+          <div id="slideshow-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
+            </svg>
+            <span>Add photos from this tablet in Settings to start the slideshow.</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </div>
+
+  <button id="settings-btn" title="Settings">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+    </svg>
+  </button>
+
+  <div id="settings-modal">
+    <div id="settings-panel">
+      <h3>Dashboard Settings</h3>
+
+      <div class="setting-row">
+        <label>Left column width (Calendar / Weather) — <span class="val" id="leftcol-val">56%</span></label>
+        <input type="range" id="leftcol-range" min="35" max="65" value="56">
+      </div>
+      <div class="setting-row">
+        <label>Calendar height (left side) — <span class="val" id="toprowleft-val">63%</span></label>
+        <input type="range" id="toprowleft-range" min="40" max="80" value="63">
+      </div>
+      <div class="setting-row">
+        <label>To-Do height (right side) — <span class="val" id="toprowright-val">50%</span></label>
+        <input type="range" id="toprowright-range" min="25" max="75" value="50">
+      </div>
+      <div class="setting-row">
+        <label>Text size — <span class="val" id="scale-val">85%</span></label>
+        <input type="range" id="scale-range" min="80" max="140" value="85">
+      </div>
+      <div class="setting-row">
+        <label>Panel transparency (see-through amount) — <span class="val" id="alpha-val">Medium</span></label>
+        <input type="range" id="alpha-range" min="10" max="80" value="42">
+      </div>
+
+      <div class="section-divider">Weather</div>
+      <div class="setting-row">
+        <label>Weather location (city name)</label>
+        <input type="text" id="weather-city" placeholder="e.g. Denver, CO">
+      </div>
+
+      <div class="section-divider">Google Calendar</div>
+      <div class="setting-row">
+        <label>Status: <span id="gcal-status">Not connected</span></label>
+        <div class="setting-row buttons" style="margin-bottom:0;">
+          <button id="gcal-connect-btn" class="primary">Connect Google Calendar</button>
+        </div>
+      </div>
+
+      <div class="section-divider">Photos</div>
+      <div class="setting-row">
+        <label>Local photos (from this tablet) — <span class="val" id="local-photos-count">0 loaded</span></label>
+        <div class="setting-row buttons" style="margin-bottom:0;">
+          <button id="choose-photos-btn">Choose Photos From Tablet</button>
+          <button id="clear-local-photos">Clear Local Photos</button>
+        </div>
+        <input type="file" id="local-photos-input" accept="image/*" multiple style="position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;">
+      </div>
+
+      <div class="section-divider">Background</div>
+      <div class="setting-row">
+        <label>Background photo (image URL, optional)</label>
+        <input type="text" id="bg-url" placeholder="Paste an image URL, or leave default">
+      </div>
+
+      <div class="section-divider">Display</div>
+      <div class="setting-row buttons">
+        <button id="btn-fullscreen">Toggle Full Screen</button>
+        <button id="btn-wakelock" class="primary">Keep Screen Awake</button>
+      </div>
+
+      <div class="config-note">
+        Google Calendar sync (Scott, Gina, and the shared Family calendar) and cross-device
+        to-do/shopping sync need one-time developer setup (Google API key + Firebase project).
+        Paste those into the <code>CONFIG</code> block near the top of the JavaScript once ready —
+        see the chat for exactly how the 3-calendar setup works. Everything else here already works
+        without them.
+      </div>
+
+      <button id="save-settings">Save &amp; Apply</button>
+      <button id="close-settings">Close</button>
+    </div>
+  </div>
+
+  <div id="event-modal">
+    <div id="event-popup">
+      <div class="ep-who" id="ep-who"><span class="dot"></span><span id="ep-who-label"></span></div>
+      <div class="ep-title" id="ep-title"></div>
+      <div class="ep-time" id="ep-time"></div>
+      <button id="ep-delete" class="danger">Delete Event</button>
+      <button id="close-event">Close</button>
+    </div>
+  </div>
+
+  <div id="day-modal">
+    <div id="day-popup">
+      <div id="dp-date"></div>
+      <div id="dp-list"></div>
+      <button id="dp-add-btn">+ Add event this day</button>
+      <button id="close-day">Close</button>
+    </div>
+  </div>
+
+  <div id="addevent-modal">
+    <div id="addevent-popup">
+      <h3>Add Event</h3>
+      <div class="setting-row">
+        <label>Title</label>
+        <input type="text" id="ae-title" placeholder="Event title">
+      </div>
+      <div class="setting-row ae-datetime">
+        <div>
+          <label>Date</label>
+          <input type="date" id="ae-date">
+        </div>
+        <div id="ae-time-wrap">
+          <label>Time</label>
+          <input type="time" id="ae-time">
+        </div>
+      </div>
+      <div class="setting-row ae-allday-row">
+        <label class="checkbox-label"><input type="checkbox" id="ae-allday"> All-day event</label>
+      </div>
+      <div class="setting-row">
+        <label>Calendar</label>
+        <select id="ae-who">
+          <option value="scott">Scott</option>
+          <option value="gina">Gina</option>
+          <option value="family">Family</option>
+        </select>
+      </div>
+      <div class="config-note" id="ae-note">
+        Google Calendar isn't connected yet, so "Save Event" below keeps this on the tablet only —
+        see the chat for how to wire up real syncing.
+      </div>
+      <button id="ae-save" class="primary">Save Event</button>
+      <button id="ae-open-google">Open in Google Calendar Instead</button>
+      <button id="close-addevent">Cancel</button>
+    </div>
+  </div>
+
+  <div id="qr-modal">
+    <div id="qr-popup">
+      <h3>Scan with your phone</h3>
+      <img id="qr-img" alt="QR code for Google Calendar">
+      <div id="qr-url"></div>
+      <button id="close-qr">Close</button>
+    </div>
+  </div>
+
+<script>
+/* =========================================================
+   CONFIG
+   ========================================================= */
+const CONFIG = {
+  GOOGLE_CLIENT_ID: "414422350990-umdqk5205h09205eu64ll38eag26t34k.apps.googleusercontent.com",
+  GOOGLE_API_KEY: "AIzaSyAsSU3PbRQCWCLrkDxOYM2yvCn1D8fjtLk",
+  CALENDAR_IDS: {
+    scott: "primary",     // Scott's personal calendar
+    gina: ["ginajcapponi@gmail.com", "ginajdouglass@gmail.com"],  // Gina's two accounts — both read as "gina" events
+    family: "family03164673245021478332@group.calendar.google.com"
+  },
+  FIREBASE_CONFIG: null,
+  DEFAULT_BACKGROUND: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1920&q=80"
+};
+
+const store = {
+  get(k, fallback){ try{ const v = localStorage.getItem(k); return v===null?fallback:JSON.parse(v);}catch(e){return fallback;} },
+  set(k, v){ localStorage.setItem(k, JSON.stringify(v)); }
+};
+
+/* ---------------- Local photo storage ----------------
+   Tries IndexedDB first (handles many photos well). Some kiosk/WebView
+   browsers refuse to open an IndexedDB backing store at all (this is the
+   "InternalError: opening backing store for indexedDB.open" case) — when
+   that happens, transparently fall back to localStorage instead, storing
+   photos as compressed base64 strings. localStorage's quota is much
+   smaller, so the fallback path only holds a handful of photos, but it
+   works where IndexedDB doesn't. */
+function blobToBase64(blob){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error('could not read image data'));
+    reader.readAsDataURL(blob);
+  });
+}
+function base64ToBlob(dataUrl){
+  const [header, data] = dataUrl.split(',');
+  const mime = header.match(/:(.*?);/)[1];
+  const binary = atob(data);
+  const bytes = new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], {type: mime});
+}
+const LS_PHOTOS_KEY = 'dashboardPhotosFallback';
+
+const localPhotoDB = {
+  _mode: null,
+  _db: null,
+  async open(){
+    if(this._mode) return this._mode;
+    try{
+      if(typeof indexedDB === 'undefined') throw new Error('indexedDB not available');
+      this._db = await new Promise((resolve, reject) => {
+        const req = indexedDB.open('dashboard-photos', 1);
+        req.onupgradeneeded = () => { req.result.createObjectStore('photos', {keyPath:'id', autoIncrement:true}); };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error || new Error('indexedDB.open failed'));
+      });
+      this._mode = 'idb';
+    }catch(err){
+      console.warn('IndexedDB unavailable for photo storage, using localStorage fallback:', err);
+      this._mode = 'ls';
+    }
+    return this._mode;
+  },
+  async replaceAll(blobs){
+    const mode = await this.open();
+    if(mode === 'idb'){
+      const db = this._db;
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('photos', 'readwrite');
+        const os = tx.objectStore('photos');
+        os.clear();
+        blobs.forEach(blob => os.add({blob}));
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }else{
+      const b64s = await Promise.all(blobs.map(blobToBase64));
+      try{
+        localStorage.setItem(LS_PHOTOS_KEY, JSON.stringify(b64s));
+      }catch(err){
+        throw new Error('storage is full — try fewer photos (' + err.message + ')');
+      }
+    }
+  },
+  async clear(){
+    const mode = await this.open();
+    if(mode === 'idb'){
+      const db = this._db;
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('photos', 'readwrite');
+        tx.objectStore('photos').clear();
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }else{
+      localStorage.removeItem(LS_PHOTOS_KEY);
+    }
+  },
+  async getAll(){
+    const mode = await this.open();
+    if(mode === 'idb'){
+      const db = this._db;
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('photos', 'readonly');
+        const req = tx.objectStore('photos').getAll();
+        req.onsuccess = () => resolve(req.result.map(r => r.blob));
+        req.onerror = () => reject(req.error);
+      });
+    }else{
+      const raw = localStorage.getItem(LS_PHOTOS_KEY);
+      if(!raw) return [];
+      const b64s = JSON.parse(raw);
+      return b64s.map(base64ToBlob);
+    }
+  }
+};
+
+/* ---------------- Clock / date ---------------- */
+function tickClock(){
+  const now = new Date();
+  document.getElementById('tb-weekday').textContent = now.toLocaleDateString(undefined,{weekday:'long'});
+  document.getElementById('tb-fulldate').textContent = now.toLocaleDateString(undefined,{month:'long', day:'numeric', year:'numeric'});
+  document.getElementById('tb-clock').textContent = now.toLocaleTimeString(undefined,{hour:'numeric', minute:'2-digit', hour12:true});
+}
+tickClock();
+setInterval(tickClock, 15000);
+
+/* ---------------- Sample events ---------------- */
+function sampleEvents(){
+  const today = new Date();
+  const mk = (offsetDays, hour, min, title, who) => {
+    const d = new Date(today); d.setDate(d.getDate()+offsetDays); d.setHours(hour, min, 0, 0);
+    return {date: d, title, who};
+  };
+  return [
+    mk(0, 9, 0, "Dentist - Scott", "scott"),
+    mk(0, 17, 30, "Pick up groceries", "gina"),
+    mk(1, 8, 0, "Team standup", "scott"),
+    mk(2, 12, 0, "Lunch with Mom", "gina"),
+    mk(3, 18, 0, "Parent-teacher conf.", "family"),
+    mk(5, 10, 0, "Soccer game", "family"),
+    mk(8, 14, 0, "Dermatologist", "scott"),
+    mk(12, 19, 0, "Anniversary dinner", "family"),
+  ];
+}
+let EVENTS = [];
+
+/* ---------------- User-added events (local backup copy of anything we've added) ---------------- */
+function loadCustomEvents(){
+  return store.get('customEvents', []).map(e => ({...e, date: new Date(e.date)}));
+}
+function saveCustomEvents(list){
+  store.set('customEvents', list.map(e => ({...e, date: e.date.toISOString()})));
+}
+
+/* =========================================================
+   Google Calendar — real OAuth + read/write via gapi + GIS
+   ========================================================= */
+let gapiInited = false;
+let gisInited = false;
+let gapiLoadStarted = false;
+let gisLoadStarted = false;
+let tokenClient = null;
+let accessToken = null;
+let tokenExpiresAt = 0;
+let googleConnectedEmail = null;
+
+function isGoogleConnected(){ return !!accessToken && Date.now() < tokenExpiresAt; }
+
+window.__gapiLoaded = function(){
+  if(gapiLoadStarted) return;
+  gapiLoadStarted = true;
+  gapi.load('client', async () => {
+    try{
+      await gapi.client.init({});
+      await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest');
+      gapiInited = true;
+      maybeAutoConnect();
+    }catch(err){
+      console.error('gapi client init failed:', err);
+      setGcalStatus('Google API failed to load: ' + err.message);
+    }
+  });
+};
+
+window.__gisLoaded = function(){
+  if(gisLoadStarted) return;
+  gisLoadStarted = true;
+  if(!CONFIG.GOOGLE_CLIENT_ID){ setGcalStatus('No Google Client ID configured yet.'); return; }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CONFIG.GOOGLE_CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/calendar',
+    callback: '' // set per-request below
+  });
+  gisInited = true;
+  maybeAutoConnect();
+};
+
+// Covers the case where the script already finished loading (fired its onload)
+// before this main script ran — the onload attribute checks for these functions
+// and no-ops if they weren't defined yet, so we re-check here in the other direction.
+if(window.__gapiReady) window.__gapiLoaded();
+if(window.__gisReady) window.__gisLoaded();
+
+function maybeAutoConnect(){
+  if(!gapiInited || !gisInited) return;
+  // Try a silent (no popup) token request in case this browser already granted consent before.
+  requestGoogleToken(false);
+}
+
+function requestGoogleToken(interactive){
+  if(!tokenClient){ setGcalStatus('Google sign-in not ready yet — try again in a moment.'); return; }
+  tokenClient.callback = async (resp) => {
+    if(resp.error){
+      if(interactive) alert('Google sign-in failed: ' + resp.error);
+      setGcalStatus(interactive ? 'Sign-in failed — try again.' : 'Not connected');
+      return;
+    }
+    accessToken = resp.access_token;
+    tokenExpiresAt = Date.now() + (resp.expires_in * 1000) - 60000; // refresh a minute early
+    gapi.client.setToken({access_token: accessToken});
+    setGcalStatus('Connected');
+    await refreshEvents();
+    renderMonth();
+    renderUpcoming();
+    scheduleTokenRefresh();
+  };
+  tokenClient.requestAccessToken({prompt: interactive ? 'consent' : ''});
+}
+function scheduleTokenRefresh(){
+  const msUntilRefresh = Math.max(tokenExpiresAt - Date.now() - 5000, 10000);
+  setTimeout(() => requestGoogleToken(false), msUntilRefresh);
+}
+function setGcalStatus(text){
+  const el = document.getElementById('gcal-status');
+  if(el) el.textContent = text;
+}
+document.getElementById('gcal-connect-btn').addEventListener('click', () => requestGoogleToken(true));
+
+/* Pull events from every configured calendar and map them into our shape.
+   Falls back to the sample demo events if Google isn't connected yet, or
+   a calendar ID is blank (Gina's, until it's filled in). */
+async function fetchGoogleEvents(){
+  if(!isGoogleConnected()) return null;
+  const today = new Date();
+  const timeMin = new Date(today.getFullYear(), today.getMonth()-1, 1).toISOString();
+  const timeMax = new Date(today.getFullYear(), today.getMonth()+3, 0).toISOString();
+  const results = [];
+  for(const [who, calIdOrIds] of Object.entries(CONFIG.CALENDAR_IDS)){
+    const idList = Array.isArray(calIdOrIds) ? calIdOrIds : (calIdOrIds ? [calIdOrIds] : []);
+    for(const calId of idList){
+      try{
+        const resp = await gapi.client.calendar.events.list({
+          calendarId: calId, timeMin, timeMax, singleEvents: true, orderBy: 'startTime', maxResults: 250
+        });
+        (resp.result.items || []).forEach(item => {
+          if(!item.start) return;
+          const allDay = !!item.start.date;
+          const date = allDay ? new Date(item.start.date + 'T00:00:00') : new Date(item.start.dateTime);
+          results.push({title: item.summary || '(No title)', date, who, allDay, googleEventId: item.id, sourceCalendarId: calId});
+        });
+      }catch(err){
+        console.warn('Could not load events for ' + who + ' (' + calId + '):', err);
+        setGcalStatus('Connected, but couldn\'t read ' + calId + ' (' + (err.result?.error?.message || err.message) + ')');
+      }
+    }
+  }
+  return results;
+}
+
+async function refreshEvents(){
+  const live = await fetchGoogleEvents();
+  EVENTS = live !== null ? [...live, ...loadCustomEvents()] : [...sampleEvents(), ...loadCustomEvents()];
+}
+
+/* Write a new event to the real calendar for whichever person it's assigned to.
+   Returns true if it actually landed on Google Calendar, false if it's staying
+   local-only (not connected, or that calendar isn't writable from this account —
+   e.g. Gina's calendar shared as view-only rather than "make changes to events"). */
+async function pushToGoogleCalendar(event){
+  if(!isGoogleConnected()) return false;
+  const configured = CONFIG.CALENDAR_IDS[event.who];
+  // When a person has more than one calendar (e.g. Gina's two accounts), new events
+  // go to the first one listed — there's no way to ask which via this simple form.
+  const calId = Array.isArray(configured) ? configured[0] : configured;
+  if(!calId) return false;
+  const resource = {summary: event.title};
+  if(event.allDay){
+    const next = new Date(event.date); next.setDate(next.getDate()+1);
+    resource.start = {date: event.date.toISOString().slice(0,10)};
+    resource.end = {date: next.toISOString().slice(0,10)};
+  }else{
+    const end = new Date(event.date.getTime() + 60*60*1000);
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    resource.start = {dateTime: event.date.toISOString(), timeZone: tz};
+    resource.end = {dateTime: end.toISOString(), timeZone: tz};
+  }
+  try{
+    await gapi.client.calendar.events.insert({calendarId: calId, resource});
+    return true;
+  }catch(err){
+    console.warn('Could not write to Google Calendar (' + event.who + '):', err);
+    return false;
+  }
+}
+
+/* ---------------- Month view ---------------- */
+let monthOffset = 0; // 0 = current real month; +1/-1 = next/prev, etc.
+
+function renderMonth(){
+  const today = new Date();
+  const viewDate = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+  const year = viewDate.getFullYear(), month = viewDate.getMonth();
+  document.getElementById('month-label').textContent = viewDate.toLocaleDateString(undefined,{month:'long', year:'numeric'});
+  document.getElementById('month-today-btn').style.visibility = monthOffset === 0 ? 'hidden' : 'visible';
+
+  const grid = document.getElementById('month-grid');
+  grid.innerHTML = '';
+
+  const firstOfMonth = new Date(year, month, 1);
+  const startDow = firstOfMonth.getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+  const cells = [];
+  for(let i=startDow-1; i>=0; i--){
+    cells.push({day: daysInPrevMonth-i, other:true, date:new Date(year, month-1, daysInPrevMonth-i)});
+  }
+  for(let d=1; d<=daysInMonth; d++){
+    cells.push({day:d, other:false, date:new Date(year, month, d)});
+  }
+  while(cells.length % 7 !== 0 || cells.length < 42){
+    const nextDay = cells.length - (startDow + daysInMonth) + 1;
+    cells.push({day: nextDay, other:true, date:new Date(year, month+1, nextDay)});
+  }
+
+  const MAX_VISIBLE = 2;
+  cells.forEach(c => {
+    const cell = document.createElement('div');
+    cell.className = 'day-cell' + (c.other ? ' other-month':'');
+    const isToday = !c.other && c.date.toDateString() === today.toDateString();
+    if(isToday) cell.classList.add('today');
+
+    const num = document.createElement('div');
+    num.className = 'num';
+    num.textContent = c.day;
+    num.addEventListener('click', () => openDayPopup(c.date));
+    cell.appendChild(num);
+
+    const dayEvents = EVENTS.filter(e => e.date.toDateString() === c.date.toDateString())
+      .sort((a,b) => a.date - b.date);
+
+    dayEvents.slice(0, MAX_VISIBLE).forEach(e => {
+      const ev = document.createElement('div');
+      ev.className = 'ev ' + e.who;
+      ev.textContent = e.title;
+      ev.addEventListener('click', () => openEventPopup(e));
+      cell.appendChild(ev);
+    });
+
+    if(dayEvents.length > MAX_VISIBLE){
+      const more = document.createElement('div');
+      more.className = 'ev-more';
+      more.textContent = '+' + (dayEvents.length - MAX_VISIBLE) + ' more';
+      more.addEventListener('click', () => openDayPopup(c.date));
+      cell.appendChild(more);
+    }
+
+    grid.appendChild(cell);
+  });
+}
+
+document.getElementById('month-prev').addEventListener('click', () => { monthOffset--; renderMonth(); });
+document.getElementById('month-next').addEventListener('click', () => { monthOffset++; renderMonth(); });
+document.getElementById('month-today-btn').addEventListener('click', () => { monthOffset = 0; renderMonth(); });
+
+/* ---------------- Day detail popup (all events for one day) ---------------- */
+const dayModal = document.getElementById('day-modal');
+function openDayPopup(date){
+  document.getElementById('dp-date').textContent = date.toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
+  const list = document.getElementById('dp-list');
+  list.innerHTML = '';
+  const dayEvents = EVENTS.filter(e => e.date.toDateString() === date.toDateString())
+    .sort((a,b) => a.date - b.date);
+  if(!dayEvents.length){
+    list.innerHTML = '<div class="dp-empty">No events this day.</div>';
+  }else{
+    dayEvents.forEach(e => {
+      const row = document.createElement('div');
+      row.className = 'dp-row';
+      row.innerHTML = `
+        <span class="dot ${e.who}"></span>
+        <span class="dp-time">${e.allDay ? 'All day' : e.date.toLocaleTimeString(undefined,{hour:'numeric', minute:'2-digit', hour12:true})}</span>
+        <span class="dp-title">${e.title}</span>
+      `;
+      row.addEventListener('click', () => { dayModal.classList.remove('open'); openEventPopup(e); });
+      list.appendChild(row);
+    });
+  }
+  document.getElementById('dp-add-btn').onclick = () => { dayModal.classList.remove('open'); openAddEventModal(date); };
+  dayModal.classList.add('open');
+}
+document.getElementById('close-day').addEventListener('click', () => dayModal.classList.remove('open'));
+dayModal.addEventListener('click', (e) => { if(e.target === dayModal) dayModal.classList.remove('open'); });
+
+/* ---------------- Add Event modal ---------------- */
+const addEventModal = document.getElementById('addevent-modal');
+function openAddEventModal(prefillDate){
+  const d = prefillDate || new Date();
+  document.getElementById('ae-title').value = '';
+  document.getElementById('ae-date').value = d.toISOString().slice(0,10);
+  document.getElementById('ae-time').value = '';           // blank — user must set a time or check All-day
+  document.getElementById('ae-allday').checked = false;
+  document.getElementById('ae-time-wrap').classList.remove('disabled');
+  document.getElementById('ae-who').value = 'scott';
+  document.getElementById('ae-note').textContent = isGoogleConnected()
+    ? 'Connected — "Save Event" will try to write this directly to the selected calendar (falls back to this tablet only if that calendar isn\'t writable from this account).'
+    : 'Google Calendar isn\'t connected yet, so "Save Event" keeps this on the tablet only.';
+  addEventModal.classList.add('open');
+}
+document.getElementById('ae-allday').addEventListener('change', (e) => {
+  document.getElementById('ae-time-wrap').classList.toggle('disabled', e.target.checked);
+});
+document.getElementById('month-add-btn').addEventListener('click', () => openAddEventModal(new Date()));
+document.getElementById('close-addevent').addEventListener('click', () => addEventModal.classList.remove('open'));
+addEventModal.addEventListener('click', (e) => { if(e.target === addEventModal) addEventModal.classList.remove('open'); });
+
+document.getElementById('ae-save').addEventListener('click', async () => {
+  const title = document.getElementById('ae-title').value.trim();
+  const dateStr = document.getElementById('ae-date').value;
+  const timeStr = document.getElementById('ae-time').value;
+  const allDay = document.getElementById('ae-allday').checked;
+  const who = document.getElementById('ae-who').value;
+  if(!title || !dateStr){ alert('Please enter a title and date.'); return; }
+  if(!allDay && !timeStr){ alert('Please set a time, or check "All-day event".'); return; }
+
+  const date = new Date(dateStr + 'T' + (allDay ? '00:00' : timeStr) + ':00');
+  const event = {title, date, who, allDay};
+
+  const saveBtn = document.getElementById('ae-save');
+  saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+  const wasConnectedBefore = isGoogleConnected();
+  const pushed = await pushToGoogleCalendar(event);
+  if(!pushed){
+    // Either not connected, or this account can't write to that person's calendar
+    // (e.g. Gina's calendar shared as view-only) — keep a local copy either way,
+    // tagged with an id so it can be found again later (e.g. to delete it).
+    event.id = 'local-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+    const custom = loadCustomEvents();
+    custom.push(event);
+    saveCustomEvents(custom);
+  }
+  await refreshEvents();
+  renderMonth();
+  renderUpcoming();
+  saveBtn.textContent = 'Save Event'; saveBtn.disabled = false;
+  addEventModal.classList.remove('open');
+  if(!pushed){
+    alert(wasConnectedBefore
+      ? 'Saved on this tablet only — this Google account doesn\'t have write access to ' + who.charAt(0).toUpperCase()+who.slice(1) + '\'s calendar.'
+      : 'Saved on this tablet only — Google Calendar isn\'t connected right now (check Settings).');
+  }
+});
+
+/* Alternate path: skip our local form entirely and let Google Calendar's own
+   compose screen handle it — real reminders/notifications on your phone,
+   guests, recurrence, etc., with zero OAuth setup needed on our side.
+   Shown as a QR code (see openQrModal below) rather than opened directly,
+   since kiosk browsers can't reliably open it in a separate tab.
+   Note: creates the event on whichever Google account you sign into when
+   you scan it — there's no way to target Gina's or the Family calendar
+   specifically through this URL. */
+document.getElementById('ae-open-google').addEventListener('click', () => {
+  const title = document.getElementById('ae-title').value.trim();
+  const dateStr = document.getElementById('ae-date').value || new Date().toISOString().slice(0,10);
+  const timeStr = document.getElementById('ae-time').value;
+  const allDay = document.getElementById('ae-allday').checked;
+  const d = dateStr.replace(/-/g, '');
+
+  let datesParam;
+  if(allDay || !timeStr){
+    // All-day quick-add format: YYYYMMDD/YYYYMMDD (end = next day, exclusive)
+    const next = new Date(dateStr + 'T00:00:00'); next.setDate(next.getDate()+1);
+    const nextStr = next.toISOString().slice(0,10).replace(/-/g,'');
+    datesParam = `${d}/${nextStr}`;
+  }else{
+    const [h,m] = timeStr.split(':');
+    const start = new Date(dateStr + 'T' + timeStr + ':00');
+    const end = new Date(start.getTime() + 60*60*1000); // default 1hr
+    const fmt = dt => dt.getFullYear() + String(dt.getMonth()+1).padStart(2,'0') + String(dt.getDate()).padStart(2,'0') +
+      'T' + String(dt.getHours()).padStart(2,'0') + String(dt.getMinutes()).padStart(2,'0') + '00';
+    datesParam = `${fmt(start)}/${fmt(end)}`;
+  }
+
+  const url = 'https://calendar.google.com/calendar/render?action=TEMPLATE' +
+    '&text=' + encodeURIComponent(title) +
+    '&dates=' + datesParam;
+  addEventModal.classList.remove('open');
+  openQrModal(url);
+});
+
+/* Fully Kiosk Browser (and most Android kiosk browsers) run a single locked-down
+   webview with no real tab support — window.open() ends up navigating the whole
+   wall display away to Google's site with no way back short of restarting the app.
+   A QR code sidesteps that entirely: the tablet never leaves the dashboard, and
+   whoever's near it just scans it with their own phone to finish in a real
+   browser/app with full Google Calendar functionality. */
+function openQrModal(url){
+  document.getElementById('qr-img').src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(url);
+  document.getElementById('qr-url').textContent = url;
+  document.getElementById('qr-modal').classList.add('open');
+}
+document.getElementById('close-qr').addEventListener('click', () => document.getElementById('qr-modal').classList.remove('open'));
+document.getElementById('qr-modal').addEventListener('click', (e) => { if(e.target.id === 'qr-modal') e.target.classList.remove('open'); });
+
+/* ---------------- Event detail popup ---------------- */
+const eventModal = document.getElementById('event-modal');
+let currentPopupEvent = null;
+function openEventPopup(e){
+  currentPopupEvent = e;
+  const whoLabel = e.who.charAt(0).toUpperCase() + e.who.slice(1);
+  document.getElementById('ep-who').querySelector('.dot').className = 'dot ' + e.who;
+  document.getElementById('ep-who-label').textContent = whoLabel;
+  document.getElementById('ep-title').textContent = e.title;
+  document.getElementById('ep-time').textContent = e.date.toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'}) +
+    (e.allDay ? ' — All day' : ' at ' + e.date.toLocaleTimeString(undefined,{hour:'numeric', minute:'2-digit', hour12:true}));
+  eventModal.classList.add('open');
+}
+document.getElementById('close-event').addEventListener('click', () => eventModal.classList.remove('open'));
+eventModal.addEventListener('click', (e) => { if(e.target === eventModal) eventModal.classList.remove('open'); });
+
+function deleteLocalCustomEvent(target){
+  const custom = loadCustomEvents();
+  const filtered = custom.filter(e => {
+    if(target.id && e.id) return e.id !== target.id;
+    return !(e.title === target.title && e.date.getTime() === target.date.getTime() && e.who === target.who);
+  });
+  saveCustomEvents(filtered);
+}
+document.getElementById('ep-delete').addEventListener('click', async () => {
+  const e = currentPopupEvent;
+  if(!e) return;
+  if(!confirm('Delete "' + e.title + '"? This can\'t be undone.')) return;
+
+  if(e.googleEventId){
+    if(!isGoogleConnected()){
+      alert('Not connected to Google Calendar right now — reconnect in Settings, then try deleting again.');
+      return;
+    }
+    const calId = e.sourceCalendarId ||
+      (Array.isArray(CONFIG.CALENDAR_IDS[e.who]) ? CONFIG.CALENDAR_IDS[e.who][0] : CONFIG.CALENDAR_IDS[e.who]);
+    try{
+      await gapi.client.calendar.events.delete({calendarId: calId, eventId: e.googleEventId});
+    }catch(err){
+      alert('Could not delete from Google Calendar: ' + (err.result?.error?.message || err.message));
+      return;
+    }
+  }else{
+    deleteLocalCustomEvent(e);
+  }
+  eventModal.classList.remove('open');
+  await refreshEvents();
+  renderMonth();
+  renderUpcoming();
+});
+
+/* ---------------- Upcoming list (always visible alongside month grid) ---------------- */
+function renderUpcoming(){
+  const view = document.getElementById('upcoming-list');
+  view.innerHTML = '';
+  const now = new Date();
+  const upcoming = EVENTS.filter(e => e.date >= new Date(now.toDateString()))
+    .sort((a,b) => a.date - b.date);
+
+  const byDay = {};
+  upcoming.forEach(e => {
+    const key = e.date.toDateString();
+    if(!byDay[key]) byDay[key] = [];
+    byDay[key].push(e);
+  });
+
+  Object.keys(byDay).forEach(key => {
+    const label = document.createElement('div');
+    label.className = 'agenda-day-label';
+    const d = new Date(key);
+    const isToday = d.toDateString() === now.toDateString();
+    label.textContent = isToday ? 'Today' : d.toLocaleDateString(undefined,{weekday:'long', month:'short', day:'numeric'});
+    view.appendChild(label);
+
+    byDay[key].forEach(e => {
+      const item = document.createElement('div');
+      item.className = 'agenda-item';
+      item.innerHTML = `
+        <div class="bar ${e.who}"></div>
+        <div class="time">${e.allDay ? 'All day' : e.date.toLocaleTimeString(undefined,{hour:'numeric', minute:'2-digit', hour12:true})}</div>
+        <div class="title">${e.title}</div>
+      `;
+      item.addEventListener('click', () => openEventPopup(e));
+      view.appendChild(item);
+    });
+  });
+
+  if(upcoming.length === 0){
+    view.innerHTML = '<div style="color:var(--text-muted); padding:0.5em 0;">Nothing upcoming.</div>';
+  }
+}
+
+refreshEvents().then(() => { renderMonth(); renderUpcoming(); });
+
+/* ---------------- Weather (Open-Meteo — free, no key) ---------------- */
+function weatherIcon(code){
+  if(code === 0) return '☀️';
+  if([1,2,3].includes(code)) return '⛅';
+  if([45,48].includes(code)) return '🌫️';
+  if([51,53,55,56,57].includes(code)) return '🌦️';
+  if([61,63,65,66,67,80,81,82].includes(code)) return '🌧️';
+  if([71,73,75,77,85,86].includes(code)) return '❄️';
+  if([95,96,99].includes(code)) return '⛈️';
+  return '🌡️';
+}
+function fmtTime(iso){
+  return new Date(iso).toLocaleTimeString(undefined,{hour:'numeric', minute:'2-digit', hour12:true});
+}
+function windDir(deg){
+  const dirs=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  return dirs[Math.round(deg/22.5) % 16];
+}
+function moonPhase(date){
+  const synodic = 29.53058867;
+  const knownNewMoon = Date.UTC(2000,0,6,18,14) / 86400000;
+  const days = (date.getTime()/86400000) - knownNewMoon;
+  const frac = (((days % synodic) + synodic) % synodic) / synodic;
+  if(frac < 0.03 || frac > 0.97) return {name:'New Moon', icon:'🌑'};
+  if(frac < 0.22) return {name:'Waxing Crescent', icon:'🌒'};
+  if(frac < 0.28) return {name:'First Quarter', icon:'🌓'};
+  if(frac < 0.47) return {name:'Waxing Gibbous', icon:'🌔'};
+  if(frac < 0.53) return {name:'Full Moon', icon:'🌕'};
+  if(frac < 0.72) return {name:'Waning Gibbous', icon:'🌖'};
+  if(frac < 0.78) return {name:'Last Quarter', icon:'🌗'};
+  return {name:'Waning Crescent', icon:'🌘'};
+}
+function findNowIndex(times){
+  const now = new Date();
+  let idx = 0;
+  for(let i=0;i<times.length;i++){ if(new Date(times[i]) <= now) idx = i; else break; }
+  return idx;
+}
+
+async function loadWeather(){
+  const city = store.get('weatherCity', '');
+  const descEl = document.getElementById('w-desc');
+  if(!city){
+    descEl.textContent = "Set your location in settings";
+    document.getElementById('w-temp').textContent = '--°';
+    return;
+  }
+  descEl.textContent = "Loading…";
+  try{
+    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`);
+    if(!geoRes.ok) throw new Error('geocoding request failed (' + geoRes.status + ')');
+    const geo = await geoRes.json();
+    if(!geo.results || !geo.results.length){
+      descEl.textContent = "Location not found — try a bigger nearby city";
+      return;
+    }
+    const {latitude, longitude, name} = geo.results[0];
+    const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure&hourly=surface_pressure&daily=temperature_2m_max,temperature_2m_min,weather_code,sunrise,sunset,precipitation_probability_max&timezone=auto`);
+    if(!wRes.ok) throw new Error('forecast request failed (' + wRes.status + ')');
+    const w = await wRes.json();
+
+    const nowIcon = weatherIcon(w.current.weather_code);
+    document.getElementById('w-icon').textContent = nowIcon;
+    document.getElementById('w-temp').textContent = Math.round(w.current.temperature_2m) + '°C';
+    descEl.textContent = name;
+
+    document.getElementById('w-sunrise').textContent = '☀ ' + fmtTime(w.daily.sunrise[0]);
+    document.getElementById('w-sunset').textContent = '🌙 ' + fmtTime(w.daily.sunset[0]);
+
+    document.getElementById('w-wind').textContent =
+      '💨 ' + Math.round(w.current.wind_speed_10m) + ' km/h ' + windDir(w.current.wind_direction_10m);
+
+    const idx = findNowIndex(w.hourly.time);
+    const futureIdx = Math.min(idx+6, w.hourly.surface_pressure.length-1);
+    const delta = w.hourly.surface_pressure[futureIdx] - w.hourly.surface_pressure[idx];
+    let trend = delta <= -2 ? 'Falling ↓ (front likely)' : (delta >= 2 ? 'Rising ↑' : 'Steady →');
+    document.getElementById('w-pressure').textContent = '⏱ ' + trend;
+
+    const moon = moonPhase(new Date());
+    document.getElementById('w-moon').textContent = moon.icon + ' ' + moon.name;
+
+    const daysEl = document.getElementById('weather-days');
+    daysEl.innerHTML = '';
+    w.daily.time.slice(0,5).forEach((dateStr, i) => {
+      const d = new Date(dateStr);
+      const el = document.createElement('div');
+      el.className = 'wday';
+      el.innerHTML = `
+        <div class="wd-name">${i===0 ? 'Today' : d.toLocaleDateString(undefined,{weekday:'short'})}</div>
+        <div class="wd-icon">${weatherIcon(w.daily.weather_code[i])}</div>
+        <div class="wd-temp">${Math.round(w.daily.temperature_2m_max[i])}°/${Math.round(w.daily.temperature_2m_min[i])}°</div>
+        <div class="wd-precip">${w.daily.precipitation_probability_max[i]}%</div>
+      `;
+      daysEl.appendChild(el);
+    });
+  }catch(err){
+    descEl.textContent = "Weather error: " + err.message;
+  }
+}
+loadWeather();
+
+/* ---------------- Generic list helper (To-Do + Shopping) ---------------- */
+function makeList(storeKey, listElId, inputElId, addBtnId, accentClass){
+  function load(){ return store.get(storeKey, []); }
+  function save(items){ store.set(storeKey, items); }
+  function render(){
+    const items = load();
+    const list = document.getElementById(listElId);
+    list.innerHTML = '';
+    items.forEach((t, i) => {
+      const item = document.createElement('div');
+      item.className = 'list-item' + (t.done ? ' done' : '');
+      item.innerHTML = `
+        <input type="checkbox" ${t.done ? 'checked':''} data-i="${i}">
+        <div class="item-text">${t.text}</div>
+        <button class="del" data-i="${i}">✕</button>
+      `;
+      list.appendChild(item);
+    });
+    list.querySelectorAll('input[type=checkbox]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const items = load();
+        items[cb.dataset.i].done = cb.checked;
+        save(items);
+        render();
+      });
+    });
+    list.querySelectorAll('.del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const items = load();
+        items.splice(btn.dataset.i, 1);
+        save(items);
+        render();
+      });
+    });
+  }
+  function add(){
+    const input = document.getElementById(inputElId);
+    const text = input.value.trim();
+    if(!text) return;
+    const items = load();
+    items.push({text, done:false});
+    save(items);
+    input.value = '';
+    render();
+  }
+  document.getElementById(addBtnId).addEventListener('click', add);
+  document.getElementById(inputElId).addEventListener('keydown', e => { if(e.key === 'Enter') add(); });
+  render();
+}
+makeList('todos', 'todo-list', 'todo-input', 'todo-add-btn');
+makeList('shopping', 'shopping-list', 'shopping-input', 'shopping-add-btn');
+
+document.getElementById('shopping-share-btn').addEventListener('click', async () => {
+  const items = store.get('shopping', []);
+  const pending = items.filter(i => !i.done);
+  if(!pending.length){ alert('Shopping list is empty.'); return; }
+  const body = 'Shopping List:\n\n' + pending.map(i => '• ' + i.text).join('\n');
+  if(navigator.share){
+    try{ await navigator.share({title:'Shopping List', text: body}); }
+    catch(err){ /* cancelled — nothing to do */ }
+  }else{
+    window.location.href = 'mailto:?subject=' + encodeURIComponent('Shopping List') + '&body=' + encodeURIComponent(body);
+  }
+});
+
+/* ---------------- Photo slideshow ---------------- */
+let slideshowTimer = null;
+let currentObjectUrls = [];
+async function renderSlideshow(){
+  const container = document.getElementById('slideshow');
+  const empty = document.getElementById('slideshow-empty');
+
+  // Revoke any object URLs from a previous render to avoid leaking memory
+  currentObjectUrls.forEach(u => URL.revokeObjectURL(u));
+  currentObjectUrls = [];
+
+  let localBlobs;
+  try{
+    localBlobs = await localPhotoDB.getAll();
+  }catch(err){
+    container.innerHTML = '';
+    container.style.display = 'none';
+    empty.style.display = 'flex';
+    empty.querySelector('span').textContent =
+      "Couldn't access photo storage (" + err.message + "). If you're opening this file " +
+      "directly, some kiosk browsers restrict storage that way — try Fully Kiosk Browser's " +
+      "\"Web app\" mode or serving the file over local http instead.";
+    return;
+  }
+  const urls = localBlobs.map(b => { const u = URL.createObjectURL(b); currentObjectUrls.push(u); return u; });
+
+  container.innerHTML = '';
+  if(slideshowTimer) clearInterval(slideshowTimer);
+
+  if(!urls.length){
+    container.style.display = 'none';
+    empty.style.display = 'flex';
+    empty.querySelector('span').textContent = "Add photos from this tablet in Settings to start the slideshow.";
+    return;
+  }
+  container.style.display = 'block';
+  empty.style.display = 'none';
+
+  urls.forEach((u, i) => {
+    const img = document.createElement('img');
+    img.src = u;
+    if(i === 0) img.classList.add('active');
+    container.appendChild(img);
+  });
+
+  let idx = 0;
+  const imgs = container.querySelectorAll('img');
+  if(imgs.length > 1){
+    slideshowTimer = setInterval(() => {
+      imgs[idx].classList.remove('active');
+      idx = (idx + 1) % imgs.length;
+      imgs[idx].classList.add('active');
+    }, 7000);
+  }
+}
+async function updateLocalPhotoCount(){
+  try{
+    const blobs = await localPhotoDB.getAll();
+    document.getElementById('local-photos-count').textContent = blobs.length + ' loaded';
+  }catch(err){
+    document.getElementById('local-photos-count').textContent = 'error: ' + err.message;
+  }
+}
+renderSlideshow();
+
+/* Downscale before storing — full-resolution camera photos can be several MB each,
+   and IndexedDB storage quota (especially when this file is opened directly rather
+   than served over http) can be small enough that storing them raw fails silently.
+   Shrinking to a sane max dimension keeps things reliable and loads faster too. */
+function resizeImage(file, maxDim = 1600, quality = 0.75){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let {width, height} = img;
+      if(width > maxDim || height > maxDim){
+        if(width > height){ height = Math.round(height * (maxDim / width)); width = maxDim; }
+        else{ width = Math.round(width * (maxDim / height)); height = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('could not encode image')), 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('could not read ' + file.name)); };
+    img.src = url;
+  });
+}
+
+document.getElementById('choose-photos-btn').addEventListener('click', () => {
+  document.getElementById('local-photos-input').click();
+});
+document.getElementById('local-photos-input').addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files);
+  if(!files.length) return;
+  const countLabel = document.getElementById('local-photos-count');
+  countLabel.textContent = 'Loading ' + files.length + ' photo(s)…';
+  try{
+    const resized = [];
+    const failures = [];
+    for(const file of files){
+      try{ resized.push(await resizeImage(file)); }
+      catch(err){ failures.push(file.name); }
+    }
+    if(!resized.length){
+      throw new Error('None of the selected photos could be processed.');
+    }
+    await localPhotoDB.replaceAll(resized);
+    await updateLocalPhotoCount();
+    await renderSlideshow();
+    if(failures.length){
+      alert('Loaded ' + resized.length + ' photo(s). Skipped: ' + failures.join(', '));
+    }
+  }catch(err){
+    alert('Could not load photos: ' + err.message);
+    await updateLocalPhotoCount();
+  }
+  e.target.value = '';
+});
+document.getElementById('clear-local-photos').addEventListener('click', async () => {
+  await localPhotoDB.clear();
+  await updateLocalPhotoCount();
+  await renderSlideshow();
+});
+
+/* ---------------- Settings panel ---------------- */
+const modal = document.getElementById('settings-modal');
+
+function openSettings(){
+  document.getElementById('leftcol-range').value = store.get('colLeft', 56);
+  document.getElementById('leftcol-val').textContent = store.get('colLeft', 56) + '%';
+  document.getElementById('toprowleft-range').value = store.get('rowLeftTop', 63);
+  document.getElementById('toprowleft-val').textContent = store.get('rowLeftTop', 63) + '%';
+  document.getElementById('toprowright-range').value = store.get('rowRightTop', 50);
+  document.getElementById('toprowright-val').textContent = store.get('rowRightTop', 50) + '%';
+  document.getElementById('scale-range').value = store.get('scale', 85);
+  document.getElementById('scale-val').textContent = store.get('scale', 85) + '%';
+  const alpha = store.get('panelAlpha', 42);
+  document.getElementById('alpha-range').value = alpha;
+  updateAlphaLabel(alpha);
+  document.getElementById('weather-city').value = store.get('weatherCity', '');
+  document.getElementById('bg-url').value = store.get('bgUrl', '');
+  updateLocalPhotoCount();
+  modal.classList.add('open');
+}
+document.getElementById('settings-btn').addEventListener('click', openSettings);
+document.getElementById('close-settings').addEventListener('click', () => modal.classList.remove('open'));
+
+function updateAlphaLabel(v){
+  v = Number(v);
+  const label = v < 25 ? 'Very see-through' : (v < 50 ? 'Medium' : (v < 70 ? 'More solid' : 'Solid'));
+  document.getElementById('alpha-val').textContent = label;
+}
+
+/* Live-preview sliders */
+document.getElementById('leftcol-range').addEventListener('input', e => {
+  document.documentElement.style.setProperty('--col-left', e.target.value + '%');
+  document.getElementById('leftcol-val').textContent = e.target.value + '%';
+});
+document.getElementById('toprowleft-range').addEventListener('input', e => {
+  document.documentElement.style.setProperty('--row-left-top', e.target.value + '%');
+  document.getElementById('toprowleft-val').textContent = e.target.value + '%';
+});
+document.getElementById('toprowright-range').addEventListener('input', e => {
+  document.documentElement.style.setProperty('--row-right-top', e.target.value + '%');
+  document.getElementById('toprowright-val').textContent = e.target.value + '%';
+});
+document.getElementById('scale-range').addEventListener('input', e => {
+  document.documentElement.style.setProperty('--scale', e.target.value/100);
+  document.getElementById('scale-val').textContent = e.target.value + '%';
+});
+document.getElementById('alpha-range').addEventListener('input', e => {
+  document.documentElement.style.setProperty('--panel-alpha', e.target.value/100);
+  updateAlphaLabel(e.target.value);
+});
+
+/* Explicit Save & Apply — the reliable path for fields like weather city */
+document.getElementById('save-settings').addEventListener('click', () => {
+  store.set('colLeft', document.getElementById('leftcol-range').value);
+  store.set('rowLeftTop', document.getElementById('toprowleft-range').value);
+  store.set('rowRightTop', document.getElementById('toprowright-range').value);
+  store.set('scale', document.getElementById('scale-range').value);
+  store.set('panelAlpha', document.getElementById('alpha-range').value);
+  store.set('weatherCity', document.getElementById('weather-city').value.trim());
+  store.set('bgUrl', document.getElementById('bg-url').value.trim());
+
+  applyAllSettings();
+  loadWeather();
+  modal.classList.remove('open');
+});
+
+function applyAllSettings(){
+  document.documentElement.style.setProperty('--col-left', store.get('colLeft', 56) + '%');
+  document.documentElement.style.setProperty('--row-left-top', store.get('rowLeftTop', 63) + '%');
+  document.documentElement.style.setProperty('--row-right-top', store.get('rowRightTop', 50) + '%');
+  document.documentElement.style.setProperty('--scale', store.get('scale', 85)/100);
+  document.documentElement.style.setProperty('--panel-alpha', store.get('panelAlpha', 42)/100);
+  const url = store.get('bgUrl', '') || CONFIG.DEFAULT_BACKGROUND;
+  document.documentElement.style.setProperty('--bg-image', url ? `url('${url}')` : 'none');
+}
+applyAllSettings();
+
+document.getElementById('btn-fullscreen').addEventListener('click', () => {
+  if(!document.fullscreenElement){ document.documentElement.requestFullscreen().catch(()=>{}); }
+  else{ document.exitFullscreen(); }
+});
+
+let wakeLock = null;
+document.getElementById('btn-wakelock').addEventListener('click', async () => {
+  try{
+    if('wakeLock' in navigator){
+      wakeLock = await navigator.wakeLock.request('screen');
+      document.getElementById('btn-wakelock').textContent = 'Screen Awake ✓';
+    }else{
+      alert("Wake Lock not supported in this browser. Use your kiosk browser's \"keep screen on\" setting instead.");
+    }
+  }catch(err){
+    alert('Could not enable wake lock: ' + err.message);
+  }
+});
+
+/* Re-render calendar & upcoming at each minute (cheap; catches midnight rollover) */
+setInterval(() => { renderMonth(); renderUpcoming(); }, 60*1000);
+setInterval(() => { refreshEvents().then(() => { renderMonth(); renderUpcoming(); }); }, 5*60*1000);
+</script>
+</body>
+</html>
